@@ -12,32 +12,29 @@ router.post("/register", async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const query = `
-      INSERT INTO users (username, email, password_hash)
-      VALUES (?, ?, ?)
-    `;
+    await db.query(
+      `INSERT INTO users (username, email, password_hash)
+       VALUES (?, ?, ?)`,
+      [username, email, hashedPassword]
+    );
 
-    db.query(query, [username, email, hashedPassword], (err, result) => {
-      if (err) {
-        return res.status(500).json({ error: "User creation failed" });
-      }
-
-      res.json({ message: "User registered successfully" });
-    });
+    res.json({ message: "User registered successfully" });
 
   } catch (err) {
-    res.status(500).json(err);
+    console.error(err);
+    res.status(500).json({ error: "User creation failed" });
   }
 });
 
 // LOGIN
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
-  const query = "SELECT * FROM users WHERE email = ?";
-
-  db.query(query, [email], async (err, results) => {
-    if (err) return res.status(500).json(err);
+  try {
+    const [results] = await db.query(
+      "SELECT * FROM users WHERE email = ?",
+      [email]
+    );
 
     if (results.length === 0) {
       return res.status(400).json({ error: "User not found" });
@@ -52,13 +49,17 @@ router.post("/login", (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, username: user.username },
+      { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
     res.json({ token });
-  });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 module.exports = router;

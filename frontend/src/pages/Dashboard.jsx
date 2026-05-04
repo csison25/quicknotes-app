@@ -4,14 +4,16 @@ import API from "../services/api";
 import { jwtDecode } from "jwt-decode";
 
 function Dashboard() {
+  const navigate = useNavigate();
+
+  // 🔹 State
   const [notes, setNotes] = useState([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [username, setUsername] = useState("");
+  const [role, setRole] = useState("");
 
-  const navigate = useNavigate();
-
-  // 🔐 Check auth + decode user
+  // 🔐 Auth check + decode user
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -20,29 +22,55 @@ function Dashboard() {
       return;
     }
 
-    const decoded = jwtDecode(token);
-    setUsername(decoded.username || "User");
+    try {
+      const decoded = jwtDecode(token);
+      setUsername(decoded.username || "User");
+      setRole(decoded.role || "user");
 
-    fetchNotes();
-  }, []);
+      // ✅ FIX: only fetch notes if token is valid
+      fetchNotes();
+    } catch (err) {
+      console.error("Invalid token:", err);
+      localStorage.removeItem("token");
+      navigate("/");
+    }
+  }, [navigate]);
 
+  // 🔹 Fetch Notes
   const fetchNotes = async () => {
-    const res = await API.get("/notes");
-    setNotes(res.data);
+    try {
+      const res = await API.get("/notes");
+      setNotes(res.data);
+    } catch (err) {
+      console.error("Failed to fetch notes:", err);
+    }
   };
 
+  // 🔹 Create Note
   const createNote = async () => {
-    await API.post("/notes", { title, body });
-    setTitle("");
-    setBody("");
-    fetchNotes();
+    if (!title.trim() && !body.trim()) return;
+
+    try {
+      await API.post("/notes", { title, body });
+      setTitle("");
+      setBody("");
+      fetchNotes();
+    } catch (err) {
+      console.error("Failed to create note:", err);
+    }
   };
 
+  // 🔹 Delete Note
   const deleteNote = async (id) => {
-    await API.delete(`/notes/${id}`);
-    fetchNotes();
+    try {
+      await API.delete(`/notes/${id}`);
+      fetchNotes();
+    } catch (err) {
+      console.error("Failed to delete note:", err);
+    }
   };
 
+  // 🔹 Logout
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/");
@@ -59,7 +87,17 @@ function Dashboard() {
       {/* USERNAME */}
       <p style={styles.username}>Welcome, {username}</p>
 
-      {/* CREATE NOTE SECTION */}
+      {/* ✅ CLEAN ADMIN BUTTON (UX IMPROVEMENT) */}
+      {role === "admin" && (
+        <button
+          style={styles.adminButton}
+          onClick={() => navigate("/admin")}
+        >
+          🔧 Admin Dashboard
+        </button>
+      )}
+
+      {/* CREATE NOTE */}
       <div style={styles.form}>
         <button onClick={createNote}>Save</button>
 
@@ -105,6 +143,12 @@ const styles = {
   },
   username: {
     marginBottom: "20px"
+  },
+  adminButton: {
+    marginBottom: "20px",
+    padding: "10px",
+    fontSize: "14px",
+    cursor: "pointer"
   },
   form: {
     display: "flex",

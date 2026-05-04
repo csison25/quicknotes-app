@@ -3,68 +3,96 @@ const router = express.Router();
 
 const db = require("../config/db");
 const authMiddleware = require("../middleware/authMiddleware");
+const adminOnly = require("../middleware/adminMiddleware");
 
-//Create Note
-router.post("/", authMiddleware, (req, res) => {
+
+// CREATE NOTE
+router.post("/", authMiddleware, async (req, res) => {
   const { title, body } = req.body;
   const userId = req.user.id;
 
-  const query = "INSERT INTO notes (user_id, title, body) VALUES (?, ?, ?)";
-
-  db.query(query, [userId, title, body], (err, result) => {
-    if (err) return res.status(500).json(err);
+  try {
+    await db.query(
+      "INSERT INTO notes (user_id, title, body) VALUES (?, ?, ?)",
+      [userId, title, body]
+    );
 
     res.json({ message: "Note created!" });
-  });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to create note" });
+  }
 });
 
 
-//Read Note
-router.get("/", authMiddleware, (req, res) => {
+// READ NOTES (USER-SPECIFIC)
+router.get("/", authMiddleware, async (req, res) => {
   const userId = req.user.id;
 
-  const query = "SELECT * FROM notes WHERE user_id = ? ORDER BY created_at DESC";
+  try {
+    const [notes] = await db.query(
+      "SELECT * FROM notes WHERE user_id = ? ORDER BY created_at DESC",
+      [userId]
+    );
 
-  db.query(query, [userId], (err, results) => {
-    if (err) return res.status(500).json(err);
+    res.json(notes);
 
-    res.json(results);
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch notes" });
+  }
 });
 
 
-//Update Note
-router.put("/:id", authMiddleware, (req, res) => {
+// ADMIN TEST ROUTE
+router.get("/admin-test", authMiddleware, adminOnly, (req, res) => {
+  res.json({ message: "Welcome Admin" });
+});
+
+
+// UPDATE NOTE
+router.put("/:id", authMiddleware, async (req, res) => {
   const noteId = req.params.id;
   const { title, body } = req.body;
   const userId = req.user.id;
 
-  const query = `
-    UPDATE notes 
-    SET title = ?, body = ? 
-    WHERE id = ? AND user_id = ?
-  `;
-
-  db.query(query, [title, body, noteId, userId], (err, result) => {
-    if (err) return res.status(500).json(err);
+  try {
+    await db.query(
+      `UPDATE notes 
+       SET title = ?, body = ? 
+       WHERE id = ? AND user_id = ?`,
+      [title, body, noteId, userId]
+    );
 
     res.json({ message: "Note updated!" });
-  });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to update note" });
+  }
 });
 
-//Delete note
-router.delete("/:id", authMiddleware, (req, res) => {
+
+// DELETE NOTE
+router.delete("/:id", authMiddleware, async (req, res) => {
   const noteId = req.params.id;
   const userId = req.user.id;
 
-  const query = "DELETE FROM notes WHERE id = ? AND user_id = ?";
-
-  db.query(query, [noteId, userId], (err, result) => {
-    if (err) return res.status(500).json(err);
+  try {
+    await db.query(
+      "DELETE FROM notes WHERE id = ? AND user_id = ?",
+      [noteId, userId]
+    );
 
     res.json({ message: "Note deleted!" });
-  });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to delete note" });
+  }
 });
 
-// 👇 KEEP THIS AT BOTTOM
+
+// EXPORT
 module.exports = router;
