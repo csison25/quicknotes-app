@@ -128,7 +128,16 @@ function Admin() {
       {/* HEADER */}
       <div style={styles.header}>
         <h2>Admin Dashboard</h2>
-        <button onClick={handleLogout}>Logout</button>
+
+         <div style={{ display: "flex", gap: "10px" }}>
+            <button onClick={() => navigate("/dashboard")}>
+              ← Back
+            </button>
+
+            <button onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
       </div>
 
       {/* USER INFO */}
