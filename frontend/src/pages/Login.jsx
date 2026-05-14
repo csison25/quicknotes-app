@@ -95,7 +95,7 @@ const styles = {
   link: {
     marginTop: "15px",
     cursor: "pointer",
-    color: "blue"
+    color: "green"
   }
 };
 
