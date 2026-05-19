@@ -12,12 +12,15 @@ router.post("/", authMiddleware, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    await db.query(
+    const [result] = await db.query(
       "INSERT INTO notes (user_id, title, body) VALUES (?, ?, ?)",
       [userId, title, body]
     );
 
-    res.json({ message: "Note created!" });
+    res.json({
+      message: "Note created!",
+      noteId: result.insertId
+    });
 
   } catch (err) {
     console.error(err);
@@ -26,21 +29,45 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 
-// READ NOTES (USER-SPECIFIC)
+// READ NOTES + MEDIA (USER-SPECIFIC)
 router.get("/", authMiddleware, async (req, res) => {
   const userId = req.user.id;
 
   try {
+    // 🔹 Get notes
     const [notes] = await db.query(
-      "SELECT * FROM notes WHERE user_id = ? ORDER BY created_at DESC",
+      `
+      SELECT *
+      FROM notes
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      `,
       [userId]
     );
 
-    res.json(notes);
+    // 🔹 Get media belonging to user
+    const [media] = await db.query(
+      `
+      SELECT *
+      FROM media
+      WHERE user_id = ?
+      `,
+      [userId]
+    );
+
+    // 🔹 Attach media to matching notes
+    const notesWithMedia = notes.map((note) => ({
+      ...note,
+      media: media.filter((m) => m.note_id === note.id)
+    }));
+
+    res.json(notesWithMedia);
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to fetch notes" });
+    res.status(500).json({
+      message: "Failed to fetch notes"
+    });
   }
 });
 

@@ -13,6 +13,8 @@ function Dashboard() {
   const [username, setUsername] = useState("");
   const [role, setRole] = useState("");
 
+  const [selectedFile, setSelectedFile] = useState(null);
+
   // 🔐 Auth check + decode user
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -38,27 +40,55 @@ function Dashboard() {
 
   // 🔹 Fetch Notes
   const fetchNotes = async () => {
-    try {
-      const res = await API.get("/notes");
-      setNotes(res.data);
-    } catch (err) {
-      console.error("Failed to fetch notes:", err);
-    }
-  };
+  try {
+    const res = await API.get("/notes");
 
-  // 🔹 Create Note
+    setNotes(res.data);
+
+  } catch (err) {
+    console.error("Failed to fetch notes:", err);
+  }
+};
+
+  // 🔹 Create Note handles images too 
   const createNote = async () => {
-    if (!title.trim() && !body.trim()) return;
+  if (!title.trim() && !body.trim()) return;
 
-    try {
-      await API.post("/notes", { title, body });
-      setTitle("");
-      setBody("");
-      fetchNotes();
-    } catch (err) {
-      console.error("Failed to create note:", err);
+  try {
+    // 1. Create note first
+    const noteRes = await API.post("/notes", {
+      title,
+      body
+    });
+
+    const noteId = noteRes.data.noteId;
+
+    // 2. Upload image IF selected
+    if (selectedFile) {
+      const formData = new FormData();
+
+      formData.append("file", selectedFile);
+      formData.append("noteId", noteId);
+
+      await API.post(`/media/upload/${noteId}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      });
     }
-  };
+
+    // 3. Reset UI
+    setTitle("");
+    setBody("");
+    setSelectedFile(null);
+
+    // 4. Refresh notes
+    fetchNotes();
+
+  } catch (err) {
+    console.error("Failed to create note:", err);
+  }
+};
 
   // 🔹 Delete Note
   const deleteNote = async (id) => {
@@ -99,7 +129,19 @@ function Dashboard() {
 
       {/* CREATE NOTE */}
       <div style={styles.form}>
-        <button onClick={createNote}>Save</button>
+        <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setSelectedFile(e.target.files[0])}
+          />
+          {selectedFile && (
+            <p style={styles.selectedFile}>
+              📎 {selectedFile.name}
+            </p>
+          )}
+        <button style={styles.saveButton} onClick={createNote}>
+  Save
+</button>
 
         <input
           placeholder="Title"
@@ -120,9 +162,29 @@ function Dashboard() {
       <div style={styles.notesContainer}>
         {notes.map((note) => (
           <div key={note.id} style={styles.noteCard}>
-            <h3>{note.title}</h3>
-            <p>{note.body}</p>
-            <button onClick={() => deleteNote(note.id)}>Delete</button>
+            <h3 style={{ textAlign: "center" }}>{note.title}</h3>
+              <p style={{ textAlign: "center" }}>
+                {note.body}
+              </p>
+            {note.media?.length > 0 && (
+                  <div style={styles.mediaContainer}>
+                    {note.media.map((item) => (
+                      <img
+                        key={item.id}
+                        src={`/uploads/${item.filename}`}
+                        alt="Note media"
+                        style={styles.noteImage}
+                      />
+                    ))}
+                  </div>
+                )}
+
+              <button
+                style={styles.deleteButton}
+                onClick={() => deleteNote(note.id)}
+              >
+                Delete
+              </button>
           </div>
         ))}
       </div>
@@ -132,9 +194,12 @@ function Dashboard() {
 
 const styles = {
   container: {
-    maxWidth: "900px",
-    margin: "0 auto",
-    padding: "20px"
+  maxWidth: "900px",
+  margin: "0 auto",
+  padding: "20px",
+  backgroundColor: "#121212",
+  minHeight: "100vh",
+  color: "#f5f5f5"
   },
   header: {
     display: "flex",
@@ -151,29 +216,106 @@ const styles = {
     cursor: "pointer"
   },
   form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "10px",
-    marginBottom: "30px"
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px",
+  marginBottom: "30px",
+  backgroundColor: "#1e1e1e",
+  padding: "24px",
+  borderRadius: "12px",
+  border: "1px solid #333",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+  alignItems: "center",
+  width: "100%",
+  boxSizing: "border-box"
   },
   input: {
-    padding: "10px",
-    fontSize: "16px"
+  width: "100%",
+  maxWidth: "700px",
+  padding: "12px",
+  fontSize: "16px",
+  borderRadius: "8px",
+  border: "1px solid #444",
+  backgroundColor: "#2a2a2a",
+  color: "#f5f5f5",
+  boxSizing: "border-box"
   },
   textarea: {
-    padding: "10px",
-    fontSize: "16px",
-    minHeight: "100px"
-  },
+  width: "100%",
+  maxWidth: "700px",
+  minHeight: "180px",
+  padding: "14px",
+  fontSize: "16px",
+  borderRadius: "8px",
+  border: "1px solid #444",
+  backgroundColor: "#2a2a2a",
+  color: "#f5f5f5",
+  resize: "both",
+  lineHeight: "1.5",
+  boxSizing: "border-box"
+},
   notesContainer: {
-    display: "grid",
-    gap: "15px"
+  display: "grid",
+  gap: "15px"
   },
   noteCard: {
-    border: "1px solid #ccc",
-    padding: "15px",
-    borderRadius: "8px"
-  }
+  backgroundColor: "#1e1e1e",
+  border: "1px solid #333",
+  padding: "20px",
+  borderRadius: "12px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+  color: "#f5f5f5",
+  alignItems: "stretch",
+  },
+  mediaContainer: {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: "16px",
+  marginTop: "15px",
+  marginBottom: "15px",
+  width: "100%"
+  },
+  noteImage: {
+  width: "100%",
+  maxWidth: "500px",
+  minWidth: "220px",
+  borderRadius: "10px",
+  objectFit: "cover",
+  border: "1px solid #444",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+  display: "block",
+  transition: "0.2s ease"
+  },
+  deleteButton: {
+  marginTop: "10px",
+  padding: "8px 12px",
+  border: "none",
+  borderRadius: "6px",
+  cursor: "pointer",
+  backgroundColor: "#b00020",
+  color: "#fff",
+  alignSelf: "flex-end"
+  },
+  selectedFile: {
+  fontSize: "14px",
+  color: "#bdbdbd",
+  marginTop: "-4px"
+  },
+  saveButton: {
+  padding: "10px 18px",
+  border: "1px solid #444",
+  borderRadius: "8px",
+  color: "#f5f5f5",
+  cursor: "pointer",
+  fontWeight: "bold",
+  transition: "0.2s ease",
+  alignSelf: "center"
+  },
 };
 
 export default Dashboard;

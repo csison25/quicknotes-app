@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Upload Test</title>
+</head>
+<body>
+
+  <h2>Test Media Upload</h2>
+
+  <input type="text" id="token" placeholder="Paste JWT token" size="80">
+  <br><br>
+
+  <input type="number" id="noteId" placeholder="Note ID">
+  <br><br>
+
+  <input type="file" id="fileInput">
+  <br><br>
+
+  <button onclick="uploadFile()">Upload</button>
+
+  <pre id="result"></pre>
+
+  <script>
+    async function uploadFile() {
+      const token = document.getElementById("token").value;
+      const noteId = document.getElementById("noteId").value;
+      const fileInput = document.getElementById("fileInput");
+
+      const formData = new FormData();
+
+      formData.append("noteId", noteId);
+      formData.append("file", fileInput.files[0]);
+
+      try {
+        const response = await fetch(
+          "http://localhost:5001/api/media/upload/2",
+          {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + token
+            },
+            body: formData
+          }
+        );
+
+        const data = await response.json();
+
+        document.getElementById("result").textContent =
+          JSON.stringify(data, null, 2);
+
+      } catch (err) {
+        console.error(err);
+
+        document.getElementById("result").textContent =
+          err.toString();
+      }
+    }
+  </script>
+
+</body>
+</html>
