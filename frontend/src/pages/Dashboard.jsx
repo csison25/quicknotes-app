@@ -173,6 +173,7 @@ function Dashboard() {
                         key={item.id}
                         src={`/uploads/${item.filename}`}
                         alt="Note media"
+                        loading="lazy"
                         style={styles.noteImage}
                       />
                     ))}
@@ -253,10 +254,12 @@ const styles = {
   resize: "both",
   lineHeight: "1.5",
   boxSizing: "border-box"
-},
+  },
   notesContainer: {
   display: "grid",
-  gap: "15px"
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: "20px",
+  alignItems: "start",
   },
   noteCard: {
   backgroundColor: "#1e1e1e",
@@ -269,6 +272,11 @@ const styles = {
   boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
   color: "#f5f5f5",
   alignItems: "stretch",
+
+  overflow: "hidden",
+  minWidth: 0,
+  width: "100%",
+  boxSizing: "border-box",
   },
   mediaContainer: {
   display: "flex",
@@ -278,18 +286,24 @@ const styles = {
   gap: "16px",
   marginTop: "15px",
   marginBottom: "15px",
-  width: "100%"
+
+  width: "100%",
+  overflow: "hidden",
   },
   noteImage: {
   width: "100%",
-  maxWidth: "500px",
-  minWidth: "220px",
-  borderRadius: "10px",
-  objectFit: "cover",
+  maxWidth: "280px",
+  height: "auto",
+  maxHeight: "280px",
+
+  borderRadius: "12px",
+  objectFit: "contain",
+
   border: "1px solid #444",
   boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+
   display: "block",
-  transition: "0.2s ease"
+  transition: "0.2s ease",
   },
   deleteButton: {
   marginTop: "10px",
