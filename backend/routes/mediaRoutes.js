@@ -23,14 +23,18 @@ const allowedMimeTypes = [
   "image/jpeg",
   "image/png",
   "image/webp",
-  "image/gif"
+  "image/gif",
+
+  // 🎥 Videos
+  "video/mp4",
+  "video/quicktime"
 ];
 
 const upload = multer({
   storage,
 
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
+  fileSize: 50 * 1024 * 1024
   },
 
   fileFilter: (req, file, cb) => {
@@ -93,6 +97,20 @@ router.post(
 
     } catch (err) {
       console.error(err);
+      // Multer size error
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({
+          message: "File exceeds 50MB limit"
+        });
+      }
+
+      // Invalid file type
+      if (err.message === "Invalid file type") {
+        return res.status(400).json({
+          message: "Only images and videos are allowed"
+        });
+      }
+
       res.status(500).json({
         message: "Upload failed"
       });

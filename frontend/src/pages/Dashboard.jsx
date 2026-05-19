@@ -15,6 +15,8 @@ function Dashboard() {
 
   const [selectedFile, setSelectedFile] = useState(null);
 
+  const [uploadError, setUploadError] = useState("");
+
   // 🔐 Auth check + decode user
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -52,6 +54,7 @@ function Dashboard() {
 
   // 🔹 Create Note handles images too 
   const createNote = async () => {
+  setUploadError("");
   if (!title.trim() && !body.trim()) return;
 
   try {
@@ -87,6 +90,13 @@ function Dashboard() {
 
   } catch (err) {
     console.error("Failed to create note:", err);
+
+    const message =
+      err.response?.data?.message ||
+      err.message ||
+      "Upload failed";
+
+    setUploadError(message);
   }
 };
 
@@ -127,13 +137,20 @@ function Dashboard() {
         </button>
       )}
 
+      {/* 🔴 UPLOAD ERROR DISPLAY */}
+      {uploadError && (
+        <p style={styles.errorText}>
+          {uploadError}
+        </p>
+      )}
+
       {/* CREATE NOTE */}
       <div style={styles.form}>
         <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setSelectedFile(e.target.files[0])}
-          />
+          type="file"
+          accept="image/*,video/mp4,video/quicktime"
+          onChange={(e) => setSelectedFile(e.target.files[0])}
+        />
           {selectedFile && (
             <p style={styles.selectedFile}>
               📎 {selectedFile.name}
@@ -169,13 +186,32 @@ function Dashboard() {
             {note.media?.length > 0 && (
                   <div style={styles.mediaContainer}>
                     {note.media.map((item) => (
-                      <img
-                        key={item.id}
-                        src={`/uploads/${item.filename}`}
-                        alt="Note media"
-                        loading="lazy"
-                        style={styles.noteImage}
-                      />
+                      <div key={item.id}>
+                        {item.mimetype.startsWith("image/") ? (
+
+                          <img
+                            src={`/uploads/${item.filename}`}
+                            alt="Note media"
+                            loading="lazy"
+                            style={styles.noteImage}
+                          />
+
+                        ) : item.mimetype.startsWith("video/") ? (
+
+                          <video
+                            controls
+                            style={styles.noteVideo}
+                          >
+                            <source
+                              src={`/uploads/${item.filename}`}
+                              type={item.mimetype}
+                            />
+
+                            Your browser does not support video playback.
+                          </video>
+
+                        ) : null}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -257,53 +293,74 @@ const styles = {
   },
   notesContainer: {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+
   gap: "20px",
+
   alignItems: "start",
+
+  width: "100%"
   },
   noteCard: {
   backgroundColor: "#1e1e1e",
   border: "1px solid #333",
   padding: "20px",
   borderRadius: "12px",
+
   display: "flex",
   flexDirection: "column",
   gap: "12px",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-  color: "#f5f5f5",
-  alignItems: "stretch",
 
   overflow: "hidden",
-  minWidth: 0,
+
   width: "100%",
+  minWidth: 0,
+
   boxSizing: "border-box",
   },
   mediaContainer: {
   display: "flex",
-  justifyContent: "center",
+  flexDirection: "column",
+
   alignItems: "center",
-  flexWrap: "wrap",
+  justifyContent: "center",
+
   gap: "16px",
+
   marginTop: "15px",
   marginBottom: "15px",
 
   width: "100%",
-  overflow: "hidden",
   },
   noteImage: {
-  width: "100%",
-  maxWidth: "280px",
-  height: "auto",
-  maxHeight: "280px",
+  display: "block",
 
-  borderRadius: "12px",
+  width: "100%",
+  height: "auto",
+
+  maxHeight: "450px",
+
   objectFit: "contain",
 
+  borderRadius: "12px",
   border: "1px solid #444",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+  backgroundColor: "#1a1a1a",
 
+  overflow: "hidden"
+  },
+  noteVideo: {
   display: "block",
-  transition: "0.2s ease",
+
+  width: "100%",
+  height: "auto",
+
+  maxHeight: "450px",
+
+  borderRadius: "12px",
+  border: "1px solid #444",
+  backgroundColor: "#000"
   },
   deleteButton: {
   marginTop: "10px",
@@ -329,6 +386,12 @@ const styles = {
   fontWeight: "bold",
   transition: "0.2s ease",
   alignSelf: "center"
+  },
+  errorText: {
+  color: "#ff6b6b",
+  marginBottom: "10px",
+  textAlign: "center",
+  fontWeight: "bold"
   },
 };
 
