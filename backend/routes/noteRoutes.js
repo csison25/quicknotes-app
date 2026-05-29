@@ -55,10 +55,21 @@ router.get("/", authMiddleware, async (req, res) => {
       [userId]
     );
 
-    // 🔹 Attach media to matching notes
+    // Group media by note_id
+    const mediaMap = {};
+
+    for (const item of media) {
+      if (!mediaMap[item.note_id]) {
+        mediaMap[item.note_id] = [];
+      }
+
+      mediaMap[item.note_id].push(item);
+    }
+
+    // Attach media efficiently
     const notesWithMedia = notes.map((note) => ({
       ...note,
-      media: media.filter((m) => m.note_id === note.id)
+      media: mediaMap[note.id] || []
     }));
 
     res.json(notesWithMedia);
