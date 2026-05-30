@@ -1,3 +1,5 @@
+const fs = require("fs").promises;
+const path = require("path");
 const express = require("express");
 const router = express.Router();
 
@@ -112,22 +114,62 @@ router.put("/:id", authMiddleware, async (req, res) => {
 });
 
 
-// DELETE NOTE
+// DELETE NOTE + ASSOCIATED FILES
 router.delete("/:id", authMiddleware, async (req, res) => {
   const noteId = req.params.id;
   const userId = req.user.id;
 
   try {
+    // Get media belonging to this note and user
+    const [media] = await db.query(
+      `
+      SELECT filename
+      FROM media
+      WHERE note_id = ?
+      AND user_id = ?
+      `,
+      [noteId, userId]
+    );
+
+    // Delete physical files
+    for (const item of media) {
+      const filePath = path.join(
+        __dirname,
+        "..",
+        "uploads",
+        item.filename
+      );
+
+      try {
+        await fs.unlink(filePath);
+        console.log(`Deleted file: ${item.filename}`);
+      } catch (err) {
+        // Ignore missing files
+        if (err.code !== "ENOENT") {
+          console.error(
+            `Failed to delete file ${item.filename}:`,
+            err
+          );
+        }
+      }
+    }
+
+    // Delete note
     await db.query(
       "DELETE FROM notes WHERE id = ? AND user_id = ?",
       [noteId, userId]
     );
 
-    res.json({ message: "Note deleted!" });
+    res.json({
+      message: "Note and associated files deleted!"
+    });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to delete note" });
+
+    res.status(500).json({
+      message: "Failed to delete note"
+    });
   }
 });
 
