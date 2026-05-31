@@ -9,15 +9,17 @@ const db = mysql.createPool({
   database: process.env.DB_NAME || "quicknotes_db"
 });
 
-// Test connection (optional but useful)
-(async () => {
-  try {
-    const connection = await db.getConnection();
-    console.log("✅ Connected to MySQL!");
-    connection.release();
-  } catch (err) {
-    console.error("❌ DB connection failed:", err);
-  }
-})();
+// Test connection (skip during Jest tests)
+if (process.env.NODE_ENV !== "test") {
+  (async () => {
+    try {
+      const connection = await db.getConnection();
+      console.log("✅ Connected to MySQL!");
+      connection.release();
+    } catch (err) {
+      console.error("❌ DB connection failed:", err);
+    }
+  })();
+}
 
 module.exports = db;

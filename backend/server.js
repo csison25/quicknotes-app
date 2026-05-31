@@ -110,6 +110,19 @@ app.get("/api/protected", authMiddleware, (req, res) => {
 // ✅ Start server
 const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+}
+
+//Added for simple test endpoint
+app.post("/api/test", (req, res) => {
+  const { message } = req.body;
+
+  res.json({
+    received: message
+  });
 });
+
+module.exports = app;
