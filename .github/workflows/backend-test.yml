@@ -38,4 +38,5 @@ jobs:
           DB_PASSWORD: test
           DB_NAME: test
           PORT: 5001
+          STRIPE_SECRET_KEY: sk_test_key
         run: npm test
